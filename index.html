@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpendLy</title>
+    <!-- Load Tailwind CSS for fast, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Three.js for 3D graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Use Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        /* --- Theme Variables --- */
+        :root {
+            --bg-body: #f7f7f7; /* Light Mode Body */
+            --bg-card: rgba(255, 255, 255, 0.6); /* Light Glassmorphism */
+            --bg-panel: rgba(247, 250, 252, 0.7); /* Lighter Glassmorphism */
+            --text-primary: #1F2937; /* Gray 900 */
+            --text-secondary: #4B5563; /* Gray 600 */
+            --bg-accent: #6D28D9; /* Violet 700 */
+            --bg-accent-light: rgba(237, 233, 254, 0.7); /* Violet 100 Glassmorphism */
+            --bg-input: #ffffff;
+            --text-input: #1F2937;
+            --border-color: rgba(209, 213, 219, 0.3);
+        }
+
+        .dark-mode {
+            --bg-body: #0D1117; /* GitHub/Professional Dark Blue-Black */
+            --bg-card: rgba(22, 27, 34, 0.5); /* Darker Glassmorphism */
+            --bg-panel: rgba(33, 38, 45, 0.6); /* Darker Glassmorphism */
+            --text-primary: #F0F6FC; /* Very light text for high contrast */
+            --text-secondary: #8B949E; /* Gray text for secondary info */
+            --bg-accent: #8B5CF6; /* Violet 400 - Brighter accent gradient */
+            --bg-accent-light: rgba(76, 55, 110, 0.5); /* Darker accent card background */
+            --bg-input: #2126D; /* Same as panel for seamless inputs */
+            --text-input: #F0F6FC; /* Ensures text inside input is visible */
+            --border-color: rgba(139, 148, 158, 0.2);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            background-image: url('https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .vibe-card {
+            background-color: var(--bg-card);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); 
+            transition: transform 0.3s ease, background-color 0.3s;
+        }
+
+        .vibe-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .main-panel { 
+            background-color: var(--bg-panel); 
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s;
+        } 
+        
+        .button-primary {
+            background-image: linear-gradient(to right, var(--bg-accent), #A78BFA);
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+        .button-primary:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+        }
+        .button-primary:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        input[type="number"], select {
+            background-color: var(--bg-input);
+            color: var(--text-input);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+        input:focus, select:focus {
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4);
+            border-color: var(--bg-accent);
+        }
+
+        h1, h2, h3, .text-gray-900, .text-violet-900 {
+            color: var(--text-primary) !important;
+        }
+        
+        .text-gray-700, .text-gray-500, label {
+            color: var(--text-secondary) !important;
+        }
+        
+        .financial-status-card {
+            background-color: var(--bg-accent-light);
+            transition: background-color 0.3s;
+        }
+        
+        .groceries { background-color: #10B981; } 
+        .rent { background-color: #FF5733; }
+        .utilities { background-color: #3B82F6; }
+        .transport { background-color: #FFC300; }
+        .day-to-day { background-color: #FBBF24; }
+        .going-out { background-color: #EC4899; }
+        .entertainment { background-color: #8B5CF6; }
+        .savings { background-color: #00BFFF; }
+        .other { background-color: #6B7280; }
+
+        .log-item {
+            padding: 1rem; border-radius: 0.75rem;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease, background-color 0.3s;
+            display: flex; align-items: center;
+        }
+        .log-item:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        .log-icon {
+            width: 10px; height: 10px; border-radius: 50%;
+            margin-right: 0.75rem; flex-shrink: 0;
+        }
+        .log-meta { font-size: 0.75rem; color: var(--text-secondary); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; }
+        .animate-slide-up { animation: slideUp 0.8s ease-out forwards; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content {
+            background-color: var(--bg-card); border: 1px solid var(--border-color);
+            padding: 2rem; border-radius: 1.5rem; width: 90%; max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); position: relative;
+        }
+        .modal-close {
+            position: absolute; top: 1rem; right: 1rem; cursor: pointer;
+            width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center;
+            border-radius: 9999px; background-color: rgba(0,0,0,0.1); transition: background-color 0.2s;
+        }
+        .modal-close:hover { background-color: rgba(0,0,0,0.2); }
+        .modal-body { max-height: 70vh; overflow-y: auto; }
+        .modal-body h4 { font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; color: var(--text-primary); }
+       
+        /* Pie Chart Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 4rem;
+            height: 4rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 999;
+        }
+        .fab:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.4);
+        }
+
+        /* Pie Chart Modal Specific Styles */
+        #pieChartCanvas {
+            width: 100% !important;
+            height: 400px !important;
+            cursor: grab;
+        }
+        #pieChartCanvas:active {
+            cursor: grabbing;
+        }
+        #pieChartLegend .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        #pieChartLegend .legend-color-box {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.75rem;
+            border-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center justify-center">
+
+    <div id="overBudgetAlert" class="fixed top-0 left-0 w-full bg-red-600 text-white text-center p-3 z-50 shadow-lg transition-transform duration-500 ease-in-out transform -translate-y-full">
+        <strong>Alert!</strong> You have exceeded your monthly budget.
+    </div>
+
+    <div class="w-full max-w-4xl rounded-3xl p-6 md:p-10 vibe-card animate-fade-in">
+
+        <!-- Header -->
+        <header class="text-center mb-10 flex flex-col md:flex-row justify-between items-center animate-slide-up" style="animation-delay: 100ms;">
+            <div class="md:text-left text-center flex-grow">
+                 <h1 class="text-4xl font-black mb-1 bg-clip-text text-transparent bg-gradient-to-r from-violet-500 to-fuchsia-500">SpendLy (₹)</h1>
+                <p class="text-lg text-gray-500">Track your money, grow your future. Current Status: <span id="time" class="font-semibold text-violet-600">Loading...</span></p>
+            </div>
+             <!-- Theme Toggle Button -->
+            <button id="themeToggle" onclick="toggleTheme()" class="mt-4 md:mt-0 px-4 py-2 rounded-full text-sm font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105">
+                Switch to Dark Mode 🌙
+            </button>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Control Panel (Left Column) -->
+            <div class="lg:col-span-1 p-6 rounded-2xl space-y-8 main-panel animate-slide-up" style="animation-delay: 200ms;">
+                
+                <!-- 1. Budget Setter -->
+                <div>
+                    <h2 class="text-2xl font-bold mb-4 text-violet-700">Set Monthly Budget</h2>
+                    <div class="mb-3">
+                        <label for="budgetInput" class="block text-sm font-medium text-gray-700 mb-1">Your Target Budget (₹)</label>
+                        <input type="number" id="budgetInput" min="1000" placeholder="e.g. 45000" value="45000" class="w-full p-3 rounded-lg focus:ring-violet-500 transition duration-150">
+                    </div>
+                    <button onclick="setNewBudget()" class="button-primary text-white font-semibold py-3 px-6 rounded-xl w-full">
+                        Update Budget
+                    </button>
+                </div>
+                
+                <!-- 2. Manual Transaction Logger -->
+                <div>
+                    <h2 class="text-2xl font-bold mb-4 text-violet-700">Log New Spending</h2>
+                    <div class="mb-3">
+                        <label for="transactionAmount" class="block text-sm font-medium text-gray-700 mb-1">Amount Spent (₹)</label>
+                        <input type="number" id="transactionAmount" min="1" placeholder="Enter your amount here" class="w-full p-3 rounded-lg focus:ring-violet-500 transition duration-150">
+                    </div>
+                    <div class="mb-5">
+                        <label for="transactionCategory" class="block text-sm font-medium text-gray-700 mb-1">Select Category</label>
+                        <select id="transactionCategory" class="w-full p-3 rounded-lg focus:ring-violet-500 transition duration-150">
+                            <option value="Groceries">🛒 Groceries</option>
+                            <option value="Rent">🏡 Rent/Housing</option>
+                            <option value="Utilities">💡 Utilities (Electric/Gas/Water)</option>
+                            <option value="Transport">⛽ Transport/Fuel</option>
+                            <option value="DayToDay">☕ Day-to-Day Items</option>
+                            <option value="GoingOut">🎉 Going Out/Dining</option>
+                            <option value="Entertainment">🎬 Movie/Entertainment</option>
+                            <option value="Savings">💰 Savings/Investments</option>
+                            <option value="Other">❓ Other</option>
+                        </select>
+                    </div>
+                    <button onclick="logNewTransaction()" class="button-primary text-white font-semibold py-3 px-6 rounded-xl w-full">
+                        Log Transaction
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard / Status (Right Columns) -->
+            <div class="lg:col-span-2 space-y-6 animate-slide-up" style="animation-delay: 300ms;">
+
+                <!-- Financial Health Summary -->
+                <div class="p-6 rounded-2xl financial-status-card">
+                    <h3 class="text-xl font-bold text-violet-800 mb-4">Your Financial Status</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                        <div class="flex items-center space-x-3">
+                             <div class="p-3 bg-violet-200 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-violet-700"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div>
+                            <div>
+                                <p class="text-sm font-medium">Monthly Budget</p>
+                                <p class="text-2xl font-extrabold text-violet-900" id="currentBudgetDisplay">₹45,000</p>
+                            </div>
+                        </div>
+                         <div class="flex items-center space-x-3">
+                             <div class="p-3 bg-red-200 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+                            <div>
+                                <p class="text-sm font-medium">Spent So Far</p>
+                                <p class="text-2xl font-extrabold text-red-500" id="spentAmount">₹0.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Category Breakdown -->
+                <div class="p-6 rounded-2xl main-panel">
+                    <h3 class="text-xl font-bold text-gray-700 mb-3">Category Breakdown</h3>
+                    <div id="categoryBreakdown" class="space-y-4">
+                        <p class="text-sm text-gray-500" id="initialMessage">Log your first expense to see the breakdown!</p>
+                    </div>
+                </div>
+
+                <!-- The Alert Log / Simulation History -->
+                <div class="p-6 rounded-2xl main-panel">
+                    <h3 class="text-xl font-bold text-gray-700 mb-3">Transaction Log</h3>
+                    <ul id="alertHistory" class="space-y-3 max-h-48 overflow-y-auto">
+                        <li class="p-3 rounded-lg text-sm text-gray-600 bg-gray-200 dark:bg-gray-700 dark:text-gray-300 transition-colors duration-300">
+                           👋 Remember to log your fixed bills (e.g., Rent, Utilities) first!
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button for Pie Chart -->
+    <button id="pieChartButton" class="fab button-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+    </button>
+    
+    <!-- Reset Button Container -->
+    <div class="text-center my-8">
+        <button id="resetButton" onclick="resetData(this)" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-5 rounded-full transition duration-150 shadow-lg hover:shadow-xl text-sm animate-fade-in" style="animation-delay: 500ms;">
+            Reset All Data
+        </button>
+    </div>
+
+    <!-- Pie Chart Modal -->
+    <div id="pieChartModal" class="modal-overlay">
+        <div class="modal-content">
+            <div id="pieChartModalCloseButton" class="modal-close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
+            <div class="modal-body">
+                <h4 class="text-center">3D Spending Chart</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div class="md:col-span-2">
+                        <canvas id="pieChartCanvas"></canvas>
+                    </div>
+                    <div id="pieChartLegend"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Core Application Logic ---
+
+        // State variables
+        let budget = 45000; 
+        let categorySpending = { Groceries: 0, Rent: 0, Utilities: 0, Transport: 0, DayToDay: 0, GoingOut: 0, Entertainment: 0, Savings: 0, Other: 0 };
+        let totalSpent = 0;
+        
+        // DOM element references
+        const spentEl = document.getElementById('spentAmount');
+        const historyEl = document.getElementById('alertHistory');
+        const timeEl = document.getElementById('time'); 
+        const amountInput = document.getElementById('transactionAmount');
+        const categorySelect = document.getElementById('transactionCategory');
+        const breakdownEl = document.getElementById('categoryBreakdown');
+        const budgetInput = document.getElementById('budgetInput');
+        const currentBudgetDisplayEl = document.getElementById('currentBudgetDisplay');
+        const themeToggleEl = document.getElementById('themeToggle');
+        const pieChartButton = document.getElementById('pieChartButton');
+        const pieChartModal = document.getElementById('pieChartModal');
+        const pieChartModalCloseButton = document.getElementById('pieChartModalCloseButton');
+        const overBudgetAlert = document.getElementById('overBudgetAlert');
+
+        
+        const categoryColors = { Groceries: '#10B981', Rent: '#FF5733', Utilities: '#3B82F6', Transport: '#FFC300', DayToDay: '#FBBF24', GoingOut: '#EC4899', Entertainment: '#8B5CF6', Savings: '#00BFFF', Other: '#6B7280' };
+        const categoryClasses = { Groceries: 'groceries', Rent: 'rent', Utilities: 'utilities', Transport: 'transport', DayToDay: 'day-to-day', GoingOut: 'going-out', Entertainment: 'entertainment', Savings: 'savings', Other: 'other' };
+
+        // --- 3D Pie Chart Logic ---
+        let scene, camera, renderer, pieChartGroup, animationFrameId;
+        let isMouseDown = false, previousMousePosition = { x: 0, y: 0 };
+
+        function initPieChart() {
+            const canvas = document.getElementById('pieChartCanvas');
+            const legend = document.getElementById('pieChartLegend');
+            if (!canvas) return;
+            
+            if (renderer) renderer.dispose();
+            legend.innerHTML = '';
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            pieChartGroup = new THREE.Group();
+            
+            const total = Object.values(categorySpending).reduce((s, a) => s + a, 0);
+            if (total === 0) {
+                legend.innerHTML = '<p>No spending data to display.</p>';
+                return;
+            }
+
+            let currentAngle = 0;
+            const radius = 5;
+            const height = 1.5;
+
+            const spendingData = Object.entries(categorySpending).filter(([,amount]) => amount > 0);
+            
+            spendingData.forEach(([category, amount]) => {
+                const percentage = amount / total;
+                const angle = percentage * Math.PI * 2;
+                
+                const shape = new THREE.Shape();
+                shape.moveTo(0, 0);
+                shape.absarc(0, 0, radius, currentAngle, currentAngle + angle, false);
+                shape.lineTo(0, 0);
+
+                const extrudeSettings = { depth: height, bevelEnabled: false };
+                const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                const material = new THREE.MeshStandardMaterial({ color: categoryColors[category], metalness: 0.5, roughness: 0.5 });
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                pieChartGroup.add(mesh);
+
+                legend.innerHTML += `
+                    <div class="legend-item">
+                        <div class="legend-color-box ${categoryClasses[category]}"></div>
+                        <span>${category}</span>
+                    </div>`;
+
+                currentAngle += angle;
+            });
+            
+            pieChartGroup.rotation.x = -0.7; // Tilt the chart
+            scene.add(pieChartGroup);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+            
+            camera.position.z = 12;
+
+            function animate() {
+                animationFrameId = requestAnimationFrame(animate);
+                if (!isMouseDown) {
+                     pieChartGroup.rotation.z += 0.003;
+                }
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Mouse controls
+            canvas.addEventListener('mousedown', e => { isMouseDown = true; });
+            canvas.addEventListener('mouseup', e => { isMouseDown = false; });
+            canvas.addEventListener('mousemove', e => {
+                if (!isMouseDown) return;
+                const deltaMove = { x: e.offsetX - previousMousePosition.x, y: e.offsetY - previousMousePosition.y };
+                pieChartGroup.rotation.z += deltaMove.x * 0.01;
+                pieChartGroup.rotation.x += deltaMove.y * 0.01;
+                previousMousePosition = { x: e.offsetX, y: e.offsetY };
+            });
+             canvas.addEventListener('mouseleave', () => { isMouseDown = false; });
+        }
+
+        function stopPieChartAnimation() {
+            if(animationFrameId) cancelAnimationFrame(animationFrameId);
+        }
+
+        pieChartButton.onclick = () => {
+            pieChartModal.style.display = 'flex';
+            setTimeout(initPieChart, 50); 
+        };
+        pieChartModalCloseButton.onclick = () => {
+            pieChartModal.style.display = 'none';
+            stopPieChartAnimation();
+        };
+
+        // --- Core App Functions ---
+        function saveData() {
+            const appData = { budget, totalSpent, categorySpending, logHistory: historyEl.innerHTML };
+            localStorage.setItem('spendLyData', JSON.stringify(appData));
+        }
+
+        function loadData() {
+            const savedData = localStorage.getItem('spendLyData');
+            if (savedData) {
+                const appData = JSON.parse(savedData);
+                budget = appData.budget || 45000;
+                totalSpent = appData.totalSpent || 0;
+                categorySpending = appData.categorySpending || { Groceries: 0, Rent: 0, Utilities: 0, Transport: 0, DayToDay: 0, GoingOut: 0, Entertainment: 0, Savings: 0, Other: 0 };
+                if (appData.logHistory) { historyEl.innerHTML = appData.logHistory; }
+            }
+        }
+        
+        function resetData(button) {
+            if (button.dataset.confirmed) {
+                localStorage.removeItem('spendLyData');
+                window.location.reload();
+            } else {
+                button.dataset.confirmed = "true";
+                button.textContent = "Click again to confirm reset";
+                button.classList.remove('bg-red-500', 'hover:bg-red-600');
+                button.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
+                setTimeout(() => {
+                    if (button.dataset.confirmed) {
+                        button.dataset.confirmed = "";
+                        button.textContent = "Reset All Data";
+                        button.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                        button.classList.add('bg-red-500', 'hover:bg-red-600');
+                    }
+                }, 3000); 
+            }
+        }
+
+        function toggleTheme() {
+            const isDarkMode = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            themeToggleEl.textContent = isDarkMode ? 'Switch to Light Mode ☀️' : 'Switch to Dark Mode 🌙';
+        }
+
+        function applySavedTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggleEl.textContent = 'Switch to Light Mode ☀️';
+            } else {
+                themeToggleEl.textContent = 'Switch to Dark Mode 🌙';
+            }
+        }
+
+        function setNewBudget() {
+            const newBudgetValue = parseFloat(budgetInput.value);
+            if (isNaN(newBudgetValue) || newBudgetValue <= 0) return;
+            budget = newBudgetValue;
+            updateSpendingDisplay(); 
+            saveData(); 
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            const hour = now.getHours();
+            let timeText = 'Evening 🌙';
+            if (hour < 5) timeText = 'Late Night 🦉';
+            else if (hour < 12) timeText = 'Morning ☀️';
+            else if (hour < 18) timeText = 'Afternoon 🌤️';
+            timeEl.textContent = timeText;
+        }
+
+        function logNewTransaction() {
+            let amount = parseFloat(amountInput.value);
+            if (isNaN(amount) || amount <= 0) return;
+            
+            let category = categorySelect.value;
+            totalSpent += amount;
+            categorySpending[category] = (categorySpending[category] || 0) + amount;
+
+            updateSpendingDisplay();
+            renderCategoryBreakdown();
+            logAlert('Transaction Logged', amount, category);
+            saveData(); 
+
+            amountInput.value = '';
+            categorySelect.value = 'Groceries';
+        }
+
+        function updateSpendingDisplay() {
+            spentEl.textContent = `₹${totalSpent.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            currentBudgetDisplayEl.textContent = `₹${budget.toLocaleString('en-IN')}`;
+            
+            spentEl.className = 'text-2xl font-extrabold ';
+            if (totalSpent > budget) spentEl.classList.add('text-red-700'); 
+            else if (totalSpent > (budget * 0.8)) spentEl.classList.add('text-orange-500');
+            else spentEl.classList.add('text-red-500');
+
+            // Over-budget alert logic
+            if (totalSpent > budget) {
+                overBudgetAlert.classList.remove('-translate-y-full');
+            } else {
+                overBudgetAlert.classList.add('-translate-y-full');
+            }
+        }
+
+        function renderCategoryBreakdown() {
+            const totalLogged = Object.values(categorySpending).reduce((sum, current) => sum + current, 0);
+            const hasTransactions = totalLogged > 0;
+            
+            if (hasTransactions) {
+                breakdownEl.innerHTML = ''; // Clear the container
+                for (const [category, amount] of Object.entries(categorySpending)) {
+                    if (amount > 0) {
+                        const percentage = (amount / totalLogged) * 100;
+                        const colorClass = categoryClasses[category] || 'other';
+                        breakdownEl.innerHTML += `
+                            <div class="flex items-center space-x-3">
+                                <span class="w-1/3 text-sm font-semibold">${category}</span>
+                                <div class="w-2/3 bg-gray-300 rounded-full h-3">
+                                    <div class="${colorClass} h-3 rounded-full transition-all duration-500" style="width: ${percentage.toFixed(1)}%"></div>
+                                </div>
+                                <span class="w-1/6 text-right text-sm font-bold">${percentage.toFixed(1)}%</span>
+                            </div>`;
+                    }
+                }
+            } else {
+                breakdownEl.innerHTML = `<p class="text-sm text-gray-500" id="initialMessage">Log your first expense to see the breakdown!</p>`;
+            }
+        }
+
+        function logAlert(type, amount, category) {
+            const now = new Date();
+            const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            const li = document.createElement('li');
+            const colorClass = categoryClasses[category] || 'other';
+            
+            li.className = `log-item`;
+            let alertTitle = category;
+            let alertMessage = `Transaction Logged: <span class="text-lg font-extrabold text-violet-700">₹${amount.toFixed(2)}</span>`;
+            
+            li.innerHTML = `
+                <div class="log-icon ${colorClass}"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center">
+                        <span class="text-base font-medium text-gray-900 dark:text-gray-100">${alertTitle}</span>
+                        <span class="log-meta">${timeString}</span>
+                    </div>
+                    <p class="text-sm text-gray-900 dark:text-gray-100 truncate">${alertMessage}</p>
+                </div>`;
+            
+            historyEl.prepend(li);
+            while (historyEl.children.length > 5) {
+                historyEl.removeChild(historyEl.lastChild);
+            }
+        }
+
+        window.onload = () => {
+            applySavedTheme();
+            loadData();
+            updateTime();
+            setInterval(updateTime, 60000); 
+            updateSpendingDisplay();
+            renderCategoryBreakdown(); 
+            budgetInput.value = budget;
+        };
+    </script>
+</body>
+</html>
+
